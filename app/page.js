@@ -1,7 +1,14 @@
-"use client"
-import { useState, useEffect } from 'react';
-import { Box, Stack, Typography, Button, Modal, TextField } from '@mui/material';
-import { firestore } from '@/firebase';
+"use client";
+import { useState, useEffect } from "react";
+import {
+  Box,
+  Stack,
+  Typography,
+  Button,
+  Modal,
+  TextField,
+} from "@mui/material";
+import { firestore } from "@/firebase";
 import {
   collection,
   doc,
@@ -10,51 +17,51 @@ import {
   setDoc,
   deleteDoc,
   getDoc,
-} from 'firebase/firestore';
-import React from 'react';
+} from "firebase/firestore";
+import React from "react";
 
 const modalStyle = {
-  position: 'absolute',
-  top: '50%',
-  left: '50%',
-  transform: 'translate(-50%, -50%)',
+  position: "absolute",
+  top: "50%",
+  left: "50%",
+  transform: "translate(-50%, -50%)",
   width: 400,
-  bgcolor: 'background.paper',
-  border: '1px solid #ccc',
+  bgcolor: "background.paper",
+  border: "1px solid #ccc",
   boxShadow: 24,
   p: 4,
-  display: 'flex',
-  flexDirection: 'column',
+  display: "flex",
+  flexDirection: "column",
   gap: 2,
 };
 
 const buttonStyle = {
-  borderRadius: '50%',
+  borderRadius: "50%",
   width: 40,
   height: 40,
   minWidth: 0,
-  fontSize: '24px',
+  fontSize: "24px",
   padding: 0,
-};
-
-const imgStyle = {
-  borderRadius: '8px',
 };
 
 export default function Home() {
   const [inventory, setInventory] = useState([]);
   const [open, setOpen] = useState(false);
-  const [itemName, setItemName] = useState('');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [itemName, setItemName] = useState("");
+  const [searchQuery, setSearchQuery] = useState("");
 
   const updateInventory = async () => {
-    const snapshot = query(collection(firestore, 'pantry'));
-    const docs = await getDocs(snapshot);
-    const inventoryList = [];
-    docs.forEach((doc) => {
-      inventoryList.push({ name: doc.id, ...doc.data() });
-    });
-    setInventory(inventoryList);
+    try {
+      const snapshot = query(collection(firestore, "pantry"));
+      const docs = await getDocs(snapshot);
+      const inventoryList = [];
+      docs.forEach((doc) => {
+        inventoryList.push({ name: doc.id, ...doc.data() });
+      });
+      setInventory(inventoryList);
+    } catch (error) {
+      console.error("Error updating inventory: ", error);
+    }
   };
 
   useEffect(() => {
@@ -62,47 +69,60 @@ export default function Home() {
   }, []);
 
   const addItem = async (item) => {
-    const docRef = doc(collection(firestore, 'pantry'), item);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      await setDoc(docRef, { quantity: quantity + 1 }, { merge: true });
-    } else {
-      await setDoc(docRef, { quantity: 1 });
+    try {
+      const docRef = doc(collection(firestore, "pantry"), item);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const { quantity } = docSnap.data();
+        await setDoc(docRef, { quantity: quantity + 1 }, { merge: true });
+      } else {
+        await setDoc(docRef, { quantity: 1 });
+      }
+      await updateInventory();
+    } catch (error) {
+      console.error("Error adding item: ", error);
     }
-    await updateInventory();
   };
 
   const incrementItem = async (item) => {
-    const docRef = doc(collection(firestore, 'pantry'), item);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      await setDoc(docRef, { quantity: quantity + 1 }, { merge: true });
+    try {
+      const docRef = doc(collection(firestore, "pantry"), item);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const { quantity } = docSnap.data();
+        await setDoc(docRef, { quantity: quantity + 1 }, { merge: true });
+      }
+      await updateInventory();
+    } catch (error) {
+      console.error("Error incrementing item: ", error);
     }
-    await updateInventory();
   };
 
   const removeItem = async (item) => {
-    const docRef = doc(collection(firestore, 'pantry'), item);
-    const docSnap = await getDoc(docRef);
-    if (docSnap.exists()) {
-      const { quantity } = docSnap.data();
-      if (quantity === 1) {
-        await deleteDoc(docRef);
-      } else {
-        await setDoc(docRef, { quantity: quantity - 1 }, { merge: true });
+    try {
+      const docRef = doc(collection(firestore, "pantry"), item);
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        const { quantity } = docSnap.data();
+        if (quantity === 1) {
+          await deleteDoc(docRef);
+        } else {
+          await setDoc(docRef, { quantity: quantity - 1 }, { merge: true });
+        }
       }
+      await updateInventory();
+    } catch (error) {
+      console.error("Error removing item: ", error);
     }
-    await updateInventory();
   };
 
   const handleOpen = () => setOpen(true);
   const handleClose = () => setOpen(false);
 
   const handleAddItem = async () => {
+    if (itemName.trim() === "") return;
     await addItem(itemName);
-    setItemName('');
+    setItemName("");
     handleClose();
   };
 
@@ -173,10 +193,20 @@ export default function Home() {
                 </Typography>
               </Box>
               <Stack direction="row" spacing={1}>
-                <Button variant="contained" color="success" sx={buttonStyle} onClick={() => incrementItem(name)}>
+                <Button
+                  variant="contained"
+                  color="success"
+                  sx={buttonStyle}
+                  onClick={() => incrementItem(name)}
+                >
                   +
                 </Button>
-                <Button variant="contained" color="error" sx={buttonStyle} onClick={() => removeItem(name)}>
+                <Button
+                  variant="contained"
+                  color="error"
+                  sx={buttonStyle}
+                  onClick={() => removeItem(name)}
+                >
                   -
                 </Button>
               </Stack>
@@ -203,7 +233,11 @@ export default function Home() {
               value={itemName}
               onChange={(e) => setItemName(e.target.value)}
             />
-            <Button variant="contained" color="primary" onClick={handleAddItem}>
+            <Button
+              variant="contained"
+              color="primary"
+              onClick={handleAddItem}
+            >
               Add
             </Button>
           </Stack>
@@ -212,3 +246,4 @@ export default function Home() {
     </Box>
   );
 }
+
